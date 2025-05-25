@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub Pages Video Gallery</title>
+    <title>Auto-Detecting Video Gallery</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -83,36 +83,6 @@
             max-width: 600px;
             margin: 0 auto;
             line-height: 1.6;
-        }
-
-        .github-info {
-            background: var(--card-bg);
-            backdrop-filter: blur(20px);
-            border-radius: var(--border-radius);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--card-border);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .github-info h3 {
-            color: var(--text-primary);
-            margin-bottom: 1rem;
-            font-size: 1.3rem;
-        }
-
-        .github-info p {
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 1rem;
-        }
-
-        .github-info code {
-            background: rgba(102, 126, 234, 0.1);
-            color: #667eea;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
         }
 
         .controls-section {
@@ -287,7 +257,7 @@
             box-shadow: var(--shadow-xl);
         }
 
-        .clear-btn {
+        .scan-btn, .clear-btn {
             padding: 1rem 2rem;
             border-radius: var(--border-radius);
             cursor: pointer;
@@ -300,6 +270,18 @@
             align-items: center;
             gap: 0.5rem;
             font-family: inherit;
+        }
+
+        .scan-btn {
+            background: var(--success-gradient);
+        }
+
+        .scan-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .clear-btn {
             background: var(--danger-gradient);
         }
 
@@ -318,6 +300,45 @@
 
         .upload-info strong {
             color: var(--text-primary);
+        }
+
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-size: 1.2rem;
+            gap: 1.5rem;
+            z-index: 10;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .progress-container {
+            width: 80%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-gradient);
+            width: 0;
+            transition: width 0.3s ease;
+            border-radius: 4px;
         }
 
         .video-count {
@@ -470,7 +491,7 @@
             height: 100%;
             background: var(--primary-gradient);
             width: 0%;
-            transition: none;
+            transition: none; /* Remove transition for instant seeking */
             border-radius: 3px;
         }
 
@@ -521,18 +542,20 @@
             cursor: pointer;
         }
 
-        .fullscreen-btn {
-            background: none;
-            border: none;
+        .quality-select {
+            background: rgba(255, 255, 255, 0.1);
             color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem;
+            font-size: 0.85rem;
             cursor: pointer;
-            padding: 0.25rem;
-            font-size: 16px;
+            outline: none;
             transition: var(--transition);
         }
 
-        .fullscreen-btn:hover {
-            transform: scale(1.1);
+        .quality-select:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .card-content {
@@ -601,6 +624,18 @@
             border: 1px solid rgba(34, 197, 94, 0.3);
         }
 
+        .status-loading {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
         .remove-btn {
             background: var(--danger-gradient);
             color: white;
@@ -616,6 +651,20 @@
         .remove-btn:hover {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 16px;
+            transition: var(--transition);
+        }
+
+        .fullscreen-btn:hover {
+            transform: scale(1.1);
         }
 
         .no-videos {
@@ -635,6 +684,56 @@
             color: var(--text-primary);
             margin-bottom: 1rem;
             font-size: 1.5rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: var(--transition);
+            min-width: 44px;
+        }
+
+        .pagination button:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .pagination button.active {
+            background: var(--primary-gradient);
+            color: white;
+            cursor: default;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .pagination button:disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .pagination span {
+            color: var(--text-muted);
+            padding: 0.75rem;
         }
 
         @media (max-width: 1024px) {
@@ -693,6 +792,12 @@
             .video-progress {
                 min-width: 100%;
             }
+
+            .pagination button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.85rem;
+                min-width: 40px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -714,12 +819,20 @@
             .video-wrapper {
                 height: 200px;
             }
+
+            .pagination button {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+                min-width: 36px;
+            }
         }
 
+        /* Smooth scrolling */
         html {
             scroll-behavior: smooth;
         }
 
+        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -741,16 +854,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>GitHub Pages Video Gallery</h1>
-            <p>Upload and manage your video collection with GitHub Pages hosting</p>
-        </div>
-
-        <div class="github-info">
-            <h3>📁 How to Add Videos to GitHub Pages</h3>
-            <p><strong>Step 1:</strong> Create a <code>videos/</code> folder in your repository</p>
-            <p><strong>Step 2:</strong> Upload your video files (MP4, WebM, etc.) to the <code>videos/</code> folder</p>
-            <p><strong>Step 3:</strong> The gallery will automatically detect and display your videos</p>
-            <p><strong>Note:</strong> GitHub has a 100MB file size limit. For larger videos, consider using Git LFS or external hosting.</p>
+            <h1>Auto-Detecting Video Gallery</h1>
+            <p>Upload, search, and sort your video collection with lightning-fast playback</p>
         </div>
 
         <div class="controls-section">
@@ -767,15 +872,23 @@
             <div class="upload-controls">
                 <div class="file-input-wrapper">
                     <input type="file" id="videoInput" class="file-input" multiple accept="video/*">
-                    <label for="videoInput" class="file-input-label">📁 Upload Videos (Local Only)</label>
+                    <label for="videoInput" class="file-input-label">📁 Upload Videos</label>
                 </div>
+                <button class="scan-btn" onclick="scanForVideos()">🔍 Scan for Videos</button>
                 <button class="clear-btn" onclick="clearAllVideos()">🗑️ Clear All</button>
             </div>
             <div class="upload-info">
-                <strong>Local Upload:</strong> Videos uploaded here are stored locally in your browser.<br>
-                <strong>GitHub Hosting:</strong> To host videos on GitHub Pages, add them to the <code>videos/</code> folder in your repository.<br>
-                • Drag and drop video files here for local viewing<br>
-                • Supports MP4, WebM, OGG, and other video formats
+                <strong>Manage videos effortlessly:</strong><br>
+                • Click "Upload Videos" to select files (up to 100GB)<br>
+                • Drag and drop video files here<br>
+                • Click "Scan for Videos" to auto-detect all videos in the video folder<br>
+                • New videos in the folder are automatically detected every 10 seconds
+            </div>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div>Processing video files...</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="uploadProgress"></div>
+                </div>
             </div>
         </div>
 
@@ -785,9 +898,11 @@
 
         <div id="videoGrid" class="video-grid"></div>
 
+        <div id="pagination" class="pagination" style="display: none;"></div>
+
         <div id="noVideos" class="no-videos">
             <h3>No videos found</h3>
-            <p>Add videos to your <code>videos/</code> folder or upload them locally to get started!</p>
+            <p>Add videos using the controls above to get started!</p>
         </div>
 
         <div id="notification" class="notification"></div>
@@ -799,16 +914,27 @@
         let filteredCollection = [];
         let sortOrder = { field: null, ascending: true };
         let searchTimeout = null;
+        let lastVideoList = [];
+        let currentPage = 1;
+        const videosPerPage = 12;
 
-        // Predefined list of videos that should be in the videos/ folder
-        const GITHUB_VIDEOS = [
-            // Add your video filenames here
-            // Example: 'sample-video.mp4', 'demo.webm', 'tutorial.mp4'
-        ];
-
+        // Enhanced error handling
         window.addEventListener('error', (e) => {
             console.error('Global error:', e.error);
         });
+
+        async function getAvailableVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.warn('Could not fetch videos from server:', error);
+                return [];
+            }
+        }
 
         function showNotification(message, isSuccess = true) {
             const notification = document.getElementById('notification');
@@ -829,15 +955,16 @@
                     videoCollection = parsed.videos || [];
                     videoIdCounter = parsed.counter || 1;
                     
+                    // Ensure all videos have required properties
                     videoCollection.forEach(video => {
                         if (!video.baseName) {
                             video.baseName = video.fileName.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, '');
                         }
                         if (!video.qualities) {
-                            video.qualities = ['Original'];
+                            video.qualities = ['360p', '720p', '1080p'];
                         }
                         if (!video.currentQuality) {
-                            video.currentQuality = 'Original';
+                            video.currentQuality = '720p';
                         }
                         if (!video.dateAdded) {
                             video.dateAdded = new Date().toISOString();
@@ -881,6 +1008,7 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // Fast video validation - only show videos that can actually play
         function isVideoPlayable(url) {
             return new Promise((resolve) => {
                 const video = document.createElement('video');
@@ -889,7 +1017,7 @@
                 
                 const timeout = setTimeout(() => {
                     resolve(false);
-                }, 3000);
+                }, 2000); // 2 second timeout
                 
                 video.addEventListener('loadedmetadata', () => {
                     clearTimeout(timeout);
@@ -906,41 +1034,50 @@
         }
 
         function createVideoCard(video) {
+            const qualityOptions = video.qualities.map(quality => 
+                `<option value="${quality}" ${video.currentQuality === quality ? 'selected' : ''}>${quality}</option>`
+            ).join('');
+            
             return `
-                <div class="video-card" data-video-id="${video.id}" onclick="navigateToVideo(${video.id})">
-                    <div class="video-wrapper">
-                        <video preload="metadata" muted>
-                            <source src="${video.url}" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                        <div class="video-controls">
-                            <button class="play-btn" onclick="event.stopPropagation(); togglePlay(this)">
-                                <span class="play-icon">▶</span>
-                            </button>
-                            <div class="video-progress" onclick="event.stopPropagation(); seekVideo(event, this)">
-                                <div class="progress-fill"></div>
-                            </div>
-                            <div class="time-display">0:00 / 0:00</div>
-                            <div class="volume-control">
-                                <button class="volume-btn" onclick="event.stopPropagation(); toggleMute(this)">🔊</button>
-                                <input type="range" class="volume-slider" min="0" max="100" value="50" onclick="event.stopPropagation()" onchange="changeVolume(this)">
-                            </div>
-                            <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleFullscreen(this)">⛶</button>
-                        </div>
+        <div class="video-card" data-video-id="${video.id}" onclick="navigateToVideo(${video.id})">
+            <div class="video-wrapper">
+                <video preload="auto" muted>
+                    <source src="${video.url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-controls">
+                    <button class="play-btn" onclick="event.stopPropagation(); togglePlay(this)">
+                        <span class="play-icon">▶</span>
+                    </button>
+                    <div class="video-progress" onclick="event.stopPropagation(); seekVideo(event, this)">
+                        <div class="progress-fill"></div>
                     </div>
-                    <div class="card-content">
-                        <h3 class="card-title">${video.title}</h3>
-                        <p class="card-description">${video.description}</p>
-                        <div class="card-meta">
-                            <span class="file-info">${video.fileName} ${video.size ? `(${formatFileSize(video.size)})` : ''}</span>
-                            <div class="video-status">
-                                <span class="status-badge status-ready">Ready</span>
-                                <button class="remove-btn" onclick="event.stopPropagation(); removeVideo(${video.id})">Remove</button>
-                            </div>
-                        </div>
+                    <div class="time-display">0:00 / 0:00</div>
+                    ${video.qualities.length > 1 ? `
+                    <select class="quality-select" onclick="event.stopPropagation()" onchange="changeQuality(this, ${video.id})">
+                        ${qualityOptions}
+                    </select>
+                    ` : ''}
+                    <div class="volume-control">
+                        <button class="volume-btn" onclick="event.stopPropagation(); toggleMute(this)">🔊</button>
+                        <input type="range" class="volume-slider" min="0" max="100" value="50" onclick="event.stopPropagation()" onchange="changeVolume(this)">
+                    </div>
+                    <button class="fullscreen-btn" onclick="event.stopPropagation(); toggleFullscreen(this)">⛶</button>
+                </div>
+            </div>
+            <div class="card-content">
+                <h3 class="card-title">${video.title}</h3>
+                <p class="card-description">${video.description}</p>
+                <div class="card-meta">
+                    <span class="file-info">${video.fileName} (${formatFileSize(video.size)})</span>
+                    <div class="video-status">
+                        <span class="status-badge status-ready">Ready</span>
+                        <button class="remove-btn" onclick="event.stopPropagation(); removeVideo(${video.id})">Remove</button>
                     </div>
                 </div>
-            `;
+            </div>
+        </div>
+    `;
         }
 
         function navigateToVideo(videoId) {
@@ -949,89 +1086,91 @@
         }
 
         async function addVideoToCollection(file, isFile = true) {
-            try {
-                if (isFile && file.size > 100 * 1024 * 1024) {
-                    showNotification('File is too large (over 100MB). Consider using Git LFS for GitHub hosting.', false);
-                    return;
-                }
-
-                let video;
-                if (isFile) {
-                    const url = URL.createObjectURL(file);
-                    
-                    const isPlayable = await isVideoPlayable(url);
-                    if (!isPlayable) {
-                        URL.revokeObjectURL(url);
-                        throw new Error(`Video file "${file.name}" is not playable or corrupted.`);
-                    }
-                    
-                    const cleanName = file.name.replace(/\.[^/.]+$/, '');
-                    const title = cleanName
-                        .replace(/_/g, ' ')
-                        .replace(/-/g, ' ')
-                        .replace(/\./g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .replace(/\b\w/g, c => c.toUpperCase());
-                    
-                    video = {
-                        id: videoIdCounter++,
-                        title: title || file.name,
-                        description: `Uploaded video: ${file.name}`,
-                        fileName: file.name,
-                        url: url,
-                        size: file.size,
-                        dateAdded: new Date().toISOString(),
-                        baseName: cleanName,
-                        qualities: ['Original'],
-                        currentQuality: 'Original',
-                        isLocal: true
-                    };
-                } else {
-                    const isPlayable = await isVideoPlayable(file.url);
-                    if (!isPlayable) {
-                        throw new Error(`Video file "${file.name}" is not accessible or playable.`);
-                    }
-                    
-                    const cleanName = file.name.replace(/\.[^/.]+$/, '');
-                    const title = file.title || cleanName
-                        .replace(/_/g, ' ')
-                        .replace(/-/g, ' ')
-                        .replace(/\./g, ' ')
-                        .replace(/\s+/g, ' ')
-                        .trim()
-                        .replace(/\b\w/g, c => c.toUpperCase());
-                    
-                    video = {
-                        id: videoIdCounter++,
-                        title: title || file.name,
-                        description: `GitHub hosted video: ${file.name}`,
-                        fileName: file.name,
-                        url: file.url,
-                        size: null,
-                        dateAdded: new Date().toISOString(),
-                        baseName: cleanName,
-                        qualities: ['Original'],
-                        currentQuality: 'Original',
-                        isLocal: false
-                    };
-                }
-
-                videoCollection.push(video);
-                saveVideos();
-                applyFiltersAndSort();
-                
-                if (isFile) {
-                    showNotification(`Added "${video.title}" successfully!`);
-                }
-                
-            } catch (error) {
-                console.error('Error adding video:', error);
-                if (isFile) {
-                    showNotification(error.message || 'Failed to add video.', false);
-                }
-            }
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('uploadProgress');
+    
+    try {
+        if (isFile && file.size > 100 * 1024 * 1024 * 1024) {
+            throw new Error('File is too large (over 100GB). Please upload a smaller video.');
         }
+
+        let video;
+        if (isFile) {
+            const url = URL.createObjectURL(file);
+            
+            // Fast validation - only add if video is playable
+            const isPlayable = await isVideoPlayable(url);
+            if (!isPlayable) {
+                URL.revokeObjectURL(url);
+                throw new Error(`Video file "${file.name}" is not playable or corrupted.`);
+            }
+            
+            const cleanName = file.name.replace(/\.[^/.]+$/, '');
+            const title = cleanName
+                .replace(/_/g, ' ')
+                .replace(/-/g, ' ')
+                .replace(/\./g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+            
+            video = {
+                id: videoIdCounter++,
+                title: title || file.name,
+                description: `Uploaded video: ${file.name}`,
+                fileName: file.name,
+                url: url,
+                size: file.size,
+                dateAdded: new Date().toISOString(),
+                baseName: cleanName,
+                qualities: ['Original'],
+                currentQuality: 'Original'
+            };
+        } else {
+            // Fast validation for scanned videos
+            const isPlayable = await isVideoPlayable(file.url);
+            if (!isPlayable) {
+                throw new Error(`Video file "${file.name}" is not accessible or playable.`);
+            }
+            
+            const cleanName = file.name.replace(/\.[^/.]+$/, '');
+            const title = file.title || cleanName
+                .replace(/_/g, ' ')
+                .replace(/-/g, ' ')
+                .replace(/\./g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/\b\w/g, c => c.toUpperCase());
+            
+            video = {
+                id: videoIdCounter++,
+                title: title || file.name,
+                description: `Auto-detected video: ${file.name}`,
+                fileName: file.name,
+                url: file.url,
+                size: null,
+                dateAdded: new Date().toISOString(),
+                baseName: cleanName,
+                qualities: ['Original'],
+                currentQuality: 'Original'
+            };
+        }
+
+        videoCollection.push(video);
+        saveVideos();
+        applyFiltersAndSort();
+        
+        if (isFile) {
+            showNotification(`Added "${video.title}" successfully!`);
+        }
+        
+    } catch (error) {
+        console.error('Error adding video:', error);
+        if (isFile) {
+            showNotification(error.message || 'Failed to add video.', false);
+        }
+    }
+}
 
         function removeVideo(videoId) {
             if (!confirm('Are you sure you want to remove this video?')) return;
@@ -1075,52 +1214,156 @@
             }
         }
 
-        async function loadGitHubVideos() {
-            const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov', '.mkv', '.m4v', '.3gp', '.flv'];
+        async function scanForVideos(isAutoScan = false) {
+    const scanBtn = document.querySelector('.scan-btn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const progressBar = document.getElementById('uploadProgress');
+    
+    let originalText = scanBtn.textContent;
+    
+    try {
+        if (!isAutoScan) {
+            scanBtn.textContent = '🔍 Scanning...';
+            scanBtn.disabled = true;
+            loadingOverlay.classList.add('active');
+            progressBar.style.width = '0%';
+        }
+
+        let foundCount = 0;
+        const videoExtensions = ['.mp4', '.webm', '.ogg', '.avi', '.mov', '.mkv', '.m4v', '.3gp', '.flv'];
+        const availableVideos = await getAvailableVideos();
+
+        if (availableVideos.length === 0) {
+            if (!isAutoScan) {
+                showNotification('No video folder found or no videos available.', false);
+            }
+            return;
+        }
+
+        // Process ALL video files, regardless of naming convention
+        const promises = availableVideos.map(async (videoName, index) => {
+            // Check if it's a video file
+            const isVideoFile = videoExtensions.some(ext => 
+                videoName.toLowerCase().endsWith(ext.toLowerCase())
+            );
             
-            // Try to load videos from the videos/ folder
-            const commonVideoNames = [
-                'sample.mp4', 'demo.mp4', 'video1.mp4', 'video2.mp4', 'test.mp4',
-                'sample.webm', 'demo.webm', 'video1.webm', 'video2.webm',
-                'example.mp4', 'tutorial.mp4', 'presentation.mp4'
-            ];
+            if (!isVideoFile) {
+                return false;
+            }
 
-            // Combine predefined list with common names
-            const videosToCheck = [...GITHUB_VIDEOS, ...commonVideoNames];
+            const videoPath = `./video/${videoName}`;
+
+            // Check if video already exists in collection
+            const exists = videoCollection.some(v => 
+                v.url === videoPath || v.fileName === videoName
+            );
             
-            for (const videoName of videosToCheck) {
-                const videoPath = `./videos/${videoName}`;
-                
-                // Check if video already exists in collection
-                const exists = videoCollection.some(v => 
-                    v.url === videoPath || v.fileName === videoName
-                );
-                
-                if (exists) continue;
+            if (exists) {
+                return false;
+            }
 
-                try {
-                    // Try to load the video
-                    const response = await fetch(videoPath, { method: 'HEAD' });
-                    if (response.ok) {
-                        const cleanName = videoName.replace(/\.[^/.]+$/, '');
-                        const title = cleanName
-                            .replace(/_/g, ' ')
-                            .replace(/-/g, ' ')
-                            .replace(/\./g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim()
-                            .replace(/\b\w/g, c => c.toUpperCase());
+            try {
+                // Create video object with any filename
+                const cleanName = videoName.replace(/\.[^/.]+$/, ''); // Remove extension
+                const title = cleanName
+                    .replace(/_/g, ' ')
+                    .replace(/-/g, ' ')
+                    .replace(/\./g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .replace(/\b\w/g, c => c.toUpperCase());
 
-                        await addVideoToCollection({
-                            url: videoPath,
-                            name: videoName,
-                            title: title || videoName
-                        }, false);
-                    }
-                } catch (error) {
-                    // Video doesn't exist, continue
-                    continue;
+                await addVideoToCollection({
+                    url: videoPath,
+                    name: videoName,
+                    title: title || videoName
+                }, false);
+                
+                if (!isAutoScan) {
+                    progressBar.style.width = `${((index + 1) / availableVideos.length) * 100}%`;
                 }
+                
+                return true;
+            } catch (error) {
+                console.warn(`Failed to add ${videoName}:`, error);
+                return false;
+            }
+        });
+
+        const results = await Promise.all(promises);
+        foundCount = results.filter(Boolean).length;
+
+        if (foundCount > 0 && !isAutoScan) {
+            showNotification(`Found and added ${foundCount} new video(s)!`);
+        } else if (!isAutoScan && foundCount === 0) {
+            showNotification('No new videos found in the video folder.');
+        } else if (foundCount > 0 && isAutoScan) {
+            showNotification(`Auto-detected ${foundCount} new video(s)!`);
+        }
+
+    } catch (error) {
+        console.error('Error scanning for videos:', error);
+        if (!isAutoScan) {
+            showNotification('Failed to scan for videos.', false);
+        }
+    } finally {
+        if (!isAutoScan) {
+            scanBtn.textContent = originalText;
+            scanBtn.disabled = false;
+            loadingOverlay.classList.remove('active');
+        }
+    }
+}
+
+        function startAutoScan() {
+    setInterval(async () => {
+        try {
+            const currentVideos = await getAvailableVideos();
+            if (currentVideos.length !== lastVideoList.length || 
+                currentVideos.some((v, i) => v !== lastVideoList[i])) {
+                await scanForVideos(true);
+                lastVideoList = [...currentVideos];
+            }
+        } catch (error) {
+            console.warn('Auto-scan error:', error);
+        }
+    }, 3000); // Check every 3 seconds for faster detection
+}
+
+        function changeQuality(select, videoId) {
+            try {
+                const videoObj = videoCollection.find(v => v.id === videoId);
+                if (!videoObj) return;
+
+                const newQuality = select.value;
+                const videoElement = document.querySelector(`.video-card[data-video-id="${videoId}"] video`);
+                const currentTime = videoElement.currentTime;
+                const isPlaying = !videoElement.paused;
+
+                let newUrl;
+                if (videoObj.url.startsWith('blob:')) {
+                    newUrl = videoObj.url;
+                } else {
+                    const extension = videoObj.fileName.match(/\.[^/.]+$/)[0];
+                    newUrl = `./video/${videoObj.baseName}_${newQuality}${extension}`;
+                }
+
+                videoObj.currentQuality = newQuality;
+                videoObj.url = newUrl;
+                videoElement.querySelector('source').src = newUrl;
+                videoElement.load();
+                
+                // Instant seek without loading delay
+                videoElement.addEventListener('loadedmetadata', () => {
+                    videoElement.currentTime = currentTime;
+                    if (isPlaying) {
+                        videoElement.play();
+                    }
+                }, { once: true });
+
+                saveVideos();
+            } catch (error) {
+                console.error('Error changing quality:', error);
             }
         }
 
@@ -1152,6 +1395,7 @@
                     });
                 }
 
+                currentPage = 1;
                 renderVideos();
             } catch (error) {
                 console.error('Error applying filters:', error);
@@ -1174,6 +1418,7 @@
                 const playIcon = button.querySelector('.play-icon');
                 
                 if (video.paused) {
+                    // Pause all other videos
                     document.querySelectorAll('video').forEach(v => {
                         if (v !== video && !v.paused) {
                             v.pause();
@@ -1201,6 +1446,7 @@
                 const width = rect.width;
                 const percentage = Math.max(0, Math.min(1, clickX / width));
                 
+                // Instant seeking without loading delays
                 video.currentTime = percentage * video.duration;
             } catch (error) {
                 console.error('Error seeking video:', error);
@@ -1268,6 +1514,77 @@
             }
         }
 
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredCollection.length / videosPerPage);
+            currentPage = Math.max(1, Math.min(page, totalPages));
+            renderVideos();
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredCollection.length / videosPerPage);
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+            
+            pagination.style.display = 'flex';
+            pagination.innerHTML = '';
+
+            // Previous button
+            const prevButton = document.createElement('button');
+            prevButton.textContent = '‹ Previous';
+            prevButton.disabled = currentPage === 1;
+            prevButton.onclick = () => goToPage(currentPage - 1);
+            pagination.appendChild(prevButton);
+
+            // Page numbers
+            const maxPagesToShow = 5;
+            const startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+            const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+            if (startPage > 1) {
+                const firstPage = document.createElement('button');
+                firstPage.textContent = '1';
+                firstPage.onclick = () => goToPage(1);
+                pagination.appendChild(firstPage);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    pagination.appendChild(ellipsis);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = i === currentPage ? 'active' : '';
+                pageButton.onclick = () => goToPage(i);
+                pagination.appendChild(pageButton);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    pagination.appendChild(ellipsis);
+                }
+                const lastPage = document.createElement('button');
+                lastPage.textContent = totalPages;
+                lastPage.onclick = () => goToPage(totalPages);
+                pagination.appendChild(lastPage);
+            }
+
+            // Next button
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next ›';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.onclick = () => goToPage(currentPage + 1);
+            pagination.appendChild(nextButton);
+        }
+
         function renderVideos() {
             const videoGrid = document.getElementById('videoGrid');
             const noVideos = document.getElementById('noVideos');
@@ -1277,6 +1594,7 @@
                 videoGrid.style.display = 'none';
                 noVideos.style.display = 'block';
                 videoCount.style.display = 'none';
+                document.getElementById('pagination').style.display = 'none';
                 return;
             }
 
@@ -1285,17 +1603,25 @@
             videoCount.style.display = 'inline-block';
             videoCount.textContent = `${filteredCollection.length} video${filteredCollection.length !== 1 ? 's' : ''} loaded`;
 
+            const startIndex = (currentPage - 1) * videosPerPage;
+            const endIndex = startIndex + videosPerPage;
+            const videosToShow = filteredCollection.slice(startIndex, endIndex);
+
             videoGrid.innerHTML = '';
             
-            filteredCollection.forEach((video, index) => {
+            videosToShow.forEach((video, index) => {
                 const card = document.createElement('div');
                 card.innerHTML = createVideoCard(video);
                 card.firstElementChild.style.animationDelay = `${index * 0.05}s`;
                 videoGrid.appendChild(card.firstElementChild);
             });
 
+            renderPagination();
+
+            // Setup video event listeners with optimized performance
             setTimeout(() => {
                 document.querySelectorAll('video').forEach(video => {
+                    // Use passive listeners for better performance
                     video.addEventListener('timeupdate', () => {
                         updateProgress(video);
                     }, { passive: true });
@@ -1303,6 +1629,11 @@
                     video.addEventListener('ended', () => {
                         const playIcon = video.closest('.video-controls').querySelector('.play-icon');
                         if (playIcon) playIcon.textContent = '▶';
+                    }, { passive: true });
+                    
+                    // Remove loading states - videos should be ready immediately
+                    video.addEventListener('loadedmetadata', () => {
+                        // Video is ready, no loading state needed
                     }, { passive: true });
                 });
             }, 50);
@@ -1381,10 +1712,16 @@
         document.addEventListener('DOMContentLoaded', async function() {
             try {
                 loadSavedVideos();
-                await loadGitHubVideos();
+                lastVideoList = await getAvailableVideos();
                 applyFiltersAndSort();
                 
-                console.log('GitHub Pages video gallery initialized successfully');
+                if (videoCollection.length === 0) {
+                    await scanForVideos();
+                }
+                
+                startAutoScan();
+                
+                console.log('Video gallery initialized successfully');
             } catch (error) {
                 console.error('Error initializing video gallery:', error);
             }
