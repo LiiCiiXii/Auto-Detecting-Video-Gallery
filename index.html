@@ -655,7 +655,7 @@
             </div>
             <div class="upload-info">
                 <strong>Manage videos effortlessly:</strong><br>
-                • Click "Upload Videos" to select files (up to 2GB)<br>
+                • Click "Upload Videos" to select files (up to 100GB)<br>
                 • Drag and drop video files here<br>
                 • Click "Scan for Videos" to auto-detect all videos in the video folder<br>
                 • New videos in the folder are automatically detected every 10 seconds
@@ -838,11 +838,9 @@
         }
 
         function navigateToVideo(videoId) {
-            // Ensure videos are saved before navigating
             saveVideos();
-            // Add a slight delay to ensure localStorage is updated
             setTimeout(() => {
-                console.log(`Navigating to video-player.html?id=${videoId}`);
+                console.log(`Navigating to video-player.html?id=${videoId} with collection:`, videoCollection);
                 window.location.href = `video-player.html?id=${videoId}`;
             }, 100);
         }
@@ -853,8 +851,8 @@
             loadingOverlay.classList.add('active');
             progressBar.style.width = '0%';
 
-            if (isFile && file.size > 2 * 1024 * 1024 * 1024) {
-                showNotification('File is too large (over 2GB). Please upload a smaller video.', false);
+            if (isFile && file.size > 100 * 1024 * 1024 * 1024) {
+                showNotification('File is too large (over 100GB). Please upload a smaller video.', false);
                 loadingOverlay.classList.remove('active');
                 return;
             }
@@ -1162,11 +1160,6 @@
             const pagination = document.getElementById('pagination');
             const totalPages = Math.ceil(filteredCollection.length / videosPerPage);
             
-            if (filteredCollection.length < 20) {
-                pagination.style.display = 'none';
-                return;
-            }
-
             pagination.style.display = 'flex';
             pagination.innerHTML = '';
 

@@ -19,6 +19,12 @@
             min-height: 100vh;
             padding: 30px;
             color: #e2e8f0;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        body.light-theme {
+            background: linear-gradient(145deg, #f0f4f8 0%, #d1d5db 100%);
+            color: #1a1b26;
         }
 
         .container {
@@ -55,6 +61,29 @@
             object-fit: contain;
         }
 
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f0f6fc;
+            border-top: 5px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .video-wrapper.loading .loading-spinner {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
         .video-controls {
             position: absolute;
             bottom: 20px;
@@ -67,6 +96,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            opacity: 0;
             transition: opacity 0.3s ease;
             flex-wrap: wrap;
         }
@@ -75,7 +105,7 @@
             opacity: 1;
         }
 
-        .play-btn {
+        .play-btn, .skip-btn {
             background: #6366f1;
             color: white;
             width: 44px;
@@ -89,8 +119,14 @@
             border: none;
         }
 
-        .play-btn:hover {
+        .play-btn:hover, .skip-btn:hover {
             background: #4f46e5;
+        }
+
+        .skip-btn {
+            width: 40px;
+            height: 40px;
+            font-size: 0.9rem;
         }
 
         .progress-bar {
@@ -101,6 +137,7 @@
             overflow: hidden;
             cursor: pointer;
             min-width: 100px;
+            position: relative;
         }
 
         .progress-fill {
@@ -301,6 +338,26 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .theme-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+        }
+
         @media (max-width: 1024px) {
             .video-player-section {
                 flex-direction: column;
@@ -378,6 +435,7 @@
 <body>
     <div class="container">
         <a href="index.html" class="back-btn">← Back to Gallery</a>
+        <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
         <div id="videoPlayerSection" class="video-player-section"></div>
         <div id="bottomSuggestions" class="bottom-suggestions"></div>
         <div id="errorMessage" class="error-message" style="display: none;">
@@ -388,6 +446,15 @@
     <script>
         let videoCollection = [];
         let videoIdCounter = 1;
+        let currentUser = null;
+
+        // Simple in-memory user (replace with real auth in production)
+        const users = { 'guest': { id: 'guest', progress: {} } };
+        function login(userId) {
+            currentUser = users[userId] || { id: userId, progress: {} };
+            loadSavedProgress();
+        }
+        login('guest'); // Default guest user
 
         async function getAvailableVideos() {
             try {
@@ -467,6 +534,20 @@
             }
         }
 
+        function loadSavedProgress() {
+            const savedProgress = localStorage.getItem(`videoProgress_${currentUser.id}`);
+            if (savedProgress) {
+                currentUser.progress = JSON.parse(savedProgress);
+            }
+        }
+
+        function saveProgress(videoId, time) {
+            if (currentUser) {
+                currentUser.progress[videoId] = time;
+                localStorage.setItem(`videoProgress_${currentUser.id}`, JSON.stringify(currentUser.progress));
+            }
+        }
+
         function formatTime(seconds) {
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
@@ -517,11 +598,34 @@
 
         function seekVideo(event, progressBar) {
             const video = progressBar.closest('.video-wrapper').querySelector('video');
+            const wrapper = progressBar.closest('.video-wrapper');
             const rect = progressBar.getBoundingClientRect();
             const clickX = event.clientX - rect.left;
             const width = rect.width;
             const percentage = clickX / width;
-            video.currentTime = percentage * video.duration;
+            const newTime = percentage * video.duration;
+
+            wrapper.classList.add('loading');
+            video.currentTime = newTime;
+            setTimeout(() => {
+                if (!video.seeking && video.readyState >= 2) {
+                    wrapper.classList.remove('loading');
+                }
+            }, 500);
+        }
+
+        function skipVideo(seconds) {
+            const video = document.querySelector('.video-wrapper video');
+            const newTime = Math.max(0, Math.min(video.currentTime + seconds, video.duration));
+            const wrapper = video.closest('.video-wrapper');
+            wrapper.classList.add('loading');
+            video.currentTime = newTime;
+            setTimeout(() => {
+                if (!video.seeking && video.readyState >= 2) {
+                    wrapper.classList.remove('loading');
+                }
+            }, 500);
+            saveProgress(video.dataset.videoId, newTime);
         }
 
         function changeVolume(slider) {
@@ -544,11 +648,21 @@
         }
 
         function toggleFullscreen(button) {
-            const video = button.closest('.video-wrapper').querySelector('video');
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
+            const wrapper = button.closest('.video-wrapper');
+            const video = wrapper.querySelector('video');
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                }
             } else {
-                video.requestFullscreen();
+                if (wrapper.requestFullscreen) {
+                    wrapper.requestFullscreen();
+                } else if (wrapper.webkitRequestFullscreen) {
+                    wrapper.webkitRequestFullscreen();
+                }
+                video.play().catch(() => console.error('Error playing video in fullscreen'));
             }
         }
 
@@ -585,6 +699,7 @@
                 const duration = formatTime(video.duration);
                 timeDisplay.textContent = `${currentTime} / ${duration}`;
             }
+            saveProgress(video.dataset.videoId, video.currentTime);
         }
 
         function renderVideoPlayer(video) {
@@ -593,7 +708,8 @@
             ).join('');
             return `
                 <div class="main-video">
-                    <div class="video-wrapper">
+                    <div class="video-wrapper" data-video-id="${video.id}">
+                        <div class="loading-spinner"></div>
                         <video preload="metadata" autoplay>
                             <source src="${video.url}" type="video/mp4">
                             Your browser does not support the video tag.
@@ -602,9 +718,13 @@
                             <button class="play-btn" onclick="togglePlay(this)">
                                 <span class="play-icon">⏸</span>
                             </button>
+                            <button class="skip-btn" onclick="skipVideo(-10)">-10s</button>
+                            <button class="skip-btn" onclick="skipVideo(-5)">-5s</button>
                             <div class="progress-bar" onclick="seekVideo(event, this)">
                                 <div class="progress-fill"></div>
                             </div>
+                            <button class="skip-btn" onclick="skipVideo(5)">+5s</button>
+                            <button class="skip-btn" onclick="skipVideo(10)">+10s</button>
                             <div class="time-display">0:00 / 0:00</div>
                             <select class="quality-select" onchange="changeQuality(this, ${video.id})">
                                 ${qualityOptions}
@@ -642,13 +762,21 @@
             `;
         }
 
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
+            // Load theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') document.body.classList.add('light-theme');
+
             loadSavedVideos();
             const urlParams = new URLSearchParams(window.location.search);
             const videoId = parseInt(urlParams.get('id'));
             console.log('Video ID from URL:', videoId);
 
-            // If videoCollection is empty, try to load from server
             if (videoCollection.length === 0) {
                 console.log('videoCollection is empty, attempting to load from server...');
                 await loadVideosFromServer();
@@ -669,7 +797,15 @@
             videoPlayerSection.innerHTML = renderVideoPlayer(video);
             renderBottomSuggestions(videoId);
 
-            const mainVideo = document.querySelector('.main-video video');
+            const mainVideo = document.querySelector('.video-wrapper video');
+            mainVideo.dataset.videoId = video.id;
+            const wrapper = mainVideo.closest('.video-wrapper');
+
+            // Restore progress if available
+            if (currentUser.progress[video.id]) {
+                mainVideo.currentTime = currentUser.progress[video.id];
+            }
+
             mainVideo.addEventListener('timeupdate', () => {
                 requestAnimationFrame(() => updateProgress(mainVideo));
             });
@@ -677,6 +813,32 @@
                 const playIcon = mainVideo.closest('.video-controls').querySelector('.play-icon');
                 playIcon.textContent = '▶';
             });
+            mainVideo.addEventListener('loadstart', () => wrapper.classList.add('loading'));
+            mainVideo.addEventListener('waiting', () => wrapper.classList.add('loading'));
+            mainVideo.addEventListener('loadeddata', () => wrapper.classList.remove('loading'));
+            mainVideo.addEventListener('seeking', () => wrapper.classList.add('loading'));
+            mainVideo.addEventListener('seeked', () => wrapper.classList.remove('loading'));
+        });
+
+        document.addEventListener('keydown', function(e) {
+            const video = document.querySelector('.video-wrapper video');
+            if (video) {
+                switch (e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        const playBtn = video.closest('.video-controls').querySelector('.play-btn');
+                        togglePlay(playBtn);
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        skipVideo(-5);
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        skipVideo(5);
+                        break;
+                }
+            }
         });
     </script>
 </body>
