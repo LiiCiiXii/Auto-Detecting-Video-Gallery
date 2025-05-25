@@ -1,0 +1,1381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto-Detecting Video Gallery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(145deg, #1a1b26 0%, #2e1065 100%);
+            min-height: 100vh;
+            padding: 30px;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #f0f6fc;
+            text-shadow: 0 0 15px rgba(96, 165, 250, 0.4);
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            color: #a5b4fc;
+            margin-bottom: 20px;
+        }
+
+        .controls-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        .search-bar {
+            flex: 1;
+            min-width: 200px;
+            max-width: 400px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #f0f6fc;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-bar input:focus {
+            border-color: #60a5fa;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .sort-btn {
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .sort-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: border-color 0.3s ease;
+            position: relative;
+        }
+
+        .upload-section.dragover {
+            border-color: #60a5fa;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .upload-controls {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            background: linear-gradient(90deg, #6366f1, #a855f7);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+        }
+
+        .scan-btn, .clear-btn {
+            padding: 16px 32px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+            color: white;
+            border: none;
+        }
+
+        .scan-btn {
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+        }
+
+        .scan-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
+        }
+
+        .clear-btn {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        .clear-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.6);
+        }
+
+        .upload-info {
+            color: #d1d5db;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            border-radius: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            font-size: 1.2rem;
+            gap: 15px;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .progress-container {
+            width: 80%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #6366f1;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .video-count {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f0f6fc;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 1rem;
+            margin-bottom: 30px;
+            display: inline-block;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(34, 197, 94, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.active {
+            opacity: 1;
+        }
+
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 40px;
+            padding: 20px 0;
+        }
+
+        .video-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+
+        .video-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        .video-card video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            flex-wrap: wrap;
+        }
+
+        .video-card:hover .video-controls {
+            opacity: 1;
+        }
+
+        .play-btn {
+            background: #6366f1;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+            border: none;
+        }
+
+        .play-btn:hover {
+            background: #4f46e5;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #6366f1;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .time-display {
+            color: white;
+            font-size: 0.95rem;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .quality-select {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f0f6fc;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.3s ease;
+        }
+
+        .quality-select:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .card-content {
+            padding: 25px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 12px;
+            line-height: 1.4;
+        }
+
+        .card-description {
+            color: #d1d5db;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .file-info {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+
+        .video-status {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-ready {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+
+        .status-loading {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+        }
+
+        .status-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .remove-btn {
+            background: #ef4444;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.3s ease;
+            border: none;
+        }
+
+        .remove-btn:hover {
+            background: #dc2626;
+        }
+
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .no-videos {
+            text-align: center;
+            color: #d1d5db;
+            font-size: 1.3rem;
+            margin: 60px 0;
+            padding: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .pagination button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+        }
+
+        .pagination button.active {
+            background: linear-gradient(90deg, #22c55e, #4ade80);
+            cursor: default;
+            transform: none;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.6);
+        }
+
+        .pagination button:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            color: #d1d5db;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        @media (max-width: 768px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+                gap: 30px;
+                padding: 15px 0;
+            }
+
+            .header h1 {
+                font-size: 2.5rem;
+            }
+
+            .controls-section {
+                flex-direction: column;
+            }
+
+            .upload-controls {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .upload-section {
+                padding: 30px;
+            }
+
+            body {
+                padding: 20px;
+            }
+
+            .card-content {
+                padding: 20px;
+            }
+
+            .video-wrapper {
+                height: 280px;
+            }
+
+            .volume-control {
+                display: none;
+            }
+
+            .video-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .progress-bar {
+                min-width: 100%;
+            }
+
+            .pagination button {
+                padding: 8px 12px;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .video-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            body {
+                padding: 15px;
+            }
+
+            .card-meta {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .video-wrapper {
+                height: 220px;
+            }
+
+            .pagination button {
+                padding: 6px 10px;
+                font-size: 0.85rem;
+            }
+        }
+
+        .video-card {
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Auto-Detecting Video Gallery</h1>
+            <p>Upload, search, and sort your video collection with quality selection</p>
+        </div>
+
+        <div class="controls-section">
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search by title..." />
+            </div>
+            <div class="sort-controls">
+                <button class="sort-btn" onclick="sortVideos('name')">Sort by Name</button>
+                <button class="sort-btn" onclick="sortVideos('size')">Sort by Size</button>
+            </div>
+        </div>
+
+        <div class="upload-section" id="uploadSection">
+            <div class="upload-controls">
+                <div class="file-input-wrapper">
+                    <input type="file" id="videoInput" class="file-input" multiple accept="video/*">
+                    <label for="videoInput" class="file-input-label">📁 Upload Videos</label>
+                </div>
+                <button class="scan-btn" onclick="scanForVideos()">🔍 Scan for Videos</button>
+                <button class="clear-btn" onclick="clearAllVideos()">🗑️ Clear All</button>
+            </div>
+            <div class="upload-info">
+                <strong>Manage videos effortlessly:</strong><br>
+                • Click "Upload Videos" to select files (up to 2GB)<br>
+                • Drag and drop video files here<br>
+                • Click "Scan for Videos" to auto-detect all videos in the video folder<br>
+                • New videos in the folder are automatically detected every 10 seconds
+            </div>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div>Processing video files...</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="uploadProgress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="video-count" id="videoCount" style="display: none;">
+            0 videos loaded
+        </div>
+
+        <div id="videoGrid" class="video-grid"></div>
+
+        <div id="pagination" class="pagination" style="display: none;"></div>
+
+        <div id="noVideos" class="no-videos">
+            <h3>No videos found</h3>
+            <p>Add videos using the controls above to get started!</p>
+        </div>
+
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script>
+        let videoCollection = [];
+        let videoIdCounter = 1;
+        let filteredCollection = [];
+        let sortOrder = { field: null, ascending: true };
+        const worker = new Worker('videoProcessor.js');
+        let searchTimeout = null;
+        let lastVideoList = [];
+        let currentPage = 1;
+        const videosPerPage = 10;
+
+        async function getAvailableVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+                return [];
+            }
+        }
+
+        worker.onmessage = function(e) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const progressBar = document.getElementById('uploadProgress');
+            if (e.data.error) {
+                showNotification(`Error processing file: ${e.data.error}`, false);
+                loadingOverlay.classList.remove('active');
+                return;
+            }
+            progressBar.style.width = `${e.data.progress}%`;
+            if (e.data.url) {
+                videoCollection.push({
+                    id: e.data.id,
+                    title: e.data.title,
+                    description: e.data.description,
+                    fileName: e.data.fileName,
+                    url: e.data.url,
+                    size: e.data.size,
+                    dateAdded: new Date().toISOString(),
+                    baseName: e.data.fileName.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, ''),
+                    qualities: ['720p']
+                });
+                saveVideos();
+                applyFiltersAndSort();
+                loadingOverlay.classList.remove('active');
+            }
+        };
+
+        function showNotification(message, isSuccess = true) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = isSuccess 
+                ? 'rgba(34, 197, 94, 0.9)' 
+                : 'rgba(239, 68, 68, 0.9)';
+            notification.classList.add('active');
+            setTimeout(() => {
+                notification.classList.remove('active');
+            }, 3000);
+        }
+
+        function loadSavedVideos() {
+            const saved = localStorage.getItem('videoGalleryCollection');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    videoCollection = parsed.videos || [];
+                    videoIdCounter = parsed.counter || 1;
+                    filteredCollection = [...videoCollection];
+                    videoCollection.forEach(video => {
+                        if (!video.baseName) {
+                            video.baseName = video.fileName.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, '');
+                        }
+                        if (!video.qualities) {
+                            video.qualities = ['720p'];
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error loading saved videos:', e);
+                }
+            }
+        }
+
+        function saveVideos() {
+            try {
+                localStorage.setItem('videoGalleryCollection', JSON.stringify({
+                    videos: videoCollection,
+                    counter: videoIdCounter
+                }));
+                console.log('Videos saved to localStorage:', videoCollection);
+            } catch (e) {
+                console.error('Error saving videos:', e);
+                showNotification('Failed to save videos to localStorage.', false);
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0 || bytes == null) return 'Unknown';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function createVideoCard(video) {
+            const qualityOptions = video.qualities.map(quality => 
+                `<option value="${quality}" ${video.currentQuality === quality ? 'selected' : ''}>${quality}</option>`
+            ).join('');
+            return `
+                <div class="video-card" data-video-id="${video.id}" onclick="navigateToVideo(${video.id})">
+                    <div class="video-wrapper">
+                        <video preload="metadata">
+                            <source src="${video.url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-controls">
+                            <button class="play-btn">
+                                <span class="play-icon">▶</span>
+                            </button>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div class="time-display">0:00 / 0:00</div>
+                            <select class="quality-select" onchange="changeQuality(this, ${video.id})">
+                                ${qualityOptions}
+                            </select>
+                            <div class="volume-control">
+                                <button class="volume-btn">🔊</button>
+                                <input type="range" class="volume-slider" min="0" max="100" value="100">
+                            </div>
+                            <button class="fullscreen-btn">⛶</button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <h3 class="card-title">${video.title}</h3>
+                        <p class="card-description">${video.description}</p>
+                        <div class="card-meta">
+                            <span class="file-info">${video.fileName} (${formatFileSize(video.size)})</span>
+                            <div class="video-status">
+                                <span class="status-badge status-loading">Loading...</span>
+                                <button class="remove-btn">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function navigateToVideo(videoId) {
+            // Ensure videos are saved before navigating
+            saveVideos();
+            // Add a slight delay to ensure localStorage is updated
+            setTimeout(() => {
+                console.log(`Navigating to video-player.html?id=${videoId}`);
+                window.location.href = `video-player.html?id=${videoId}`;
+            }, 100);
+        }
+
+        async function addVideoToCollection(file, isFile = true) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const progressBar = document.getElementById('uploadProgress');
+            loadingOverlay.classList.add('active');
+            progressBar.style.width = '0%';
+
+            if (isFile && file.size > 2 * 1024 * 1024 * 1024) {
+                showNotification('File is too large (over 2GB). Please upload a smaller video.', false);
+                loadingOverlay.classList.remove('active');
+                return;
+            }
+
+            if (isFile) {
+                worker.postMessage({ file, id: videoIdCounter++ });
+            } else {
+                const baseName = file.name.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, '');
+                const qualityMatch = file.name.match(/_(360p|720p|1080p)$/);
+                const currentQuality = qualityMatch ? qualityMatch[1] : '720p';
+                const qualities = ['360p', '720p', '1080p'].filter(q => 
+                    file.availableQualities.includes(q)
+                );
+
+                const video = {
+                    id: videoIdCounter++,
+                    title: baseName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                    description: `Auto-detected video: ${file.name}`,
+                    fileName: file.name,
+                    url: file.url,
+                    size: null,
+                    dateAdded: new Date().toISOString(),
+                    baseName,
+                    qualities,
+                    currentQuality
+                };
+                videoCollection.push(video);
+                saveVideos();
+                applyFiltersAndSort();
+                loadingOverlay.classList.remove('active');
+            }
+        }
+
+        function removeVideo(videoId) {
+            const videoIndex = videoCollection.findIndex(v => v.id === videoId);
+            if (videoIndex > -1) {
+                const video = videoCollection[videoIndex];
+                if (video.url.startsWith('blob:')) {
+                    URL.revokeObjectURL(video.url);
+                }
+                videoCollection.splice(videoIndex, 1);
+                saveVideos();
+                applyFiltersAndSort();
+            }
+        }
+
+        function clearAllVideos() {
+            if (confirm('Are you sure you want to remove all videos?')) {
+                videoCollection.forEach(video => {
+                    if (video.url.startsWith('blob:')) {
+                        URL.revokeObjectURL(video.url);
+                    }
+                });
+                videoCollection = [];
+                filteredCollection = [];
+                videoIdCounter = 1;
+                saveVideos();
+                renderVideos();
+            }
+        }
+
+        async function scanForVideos(isAutoScan = false) {
+            const scanBtn = document.querySelector('.scan-btn');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const progressBar = document.getElementById('uploadProgress');
+            let originalText = scanBtn.textContent;
+            if (!isAutoScan) {
+                scanBtn.textContent = '🔍 Scanning...';
+                scanBtn.disabled = true;
+                loadingOverlay.classList.add('active');
+                progressBar.style.width = '0%';
+            }
+
+            let foundCount = 0;
+            const videoExtensions = ['.mp4', '.webm', '.ogg'];
+            const availableVideos = await getAvailableVideos();
+
+            const videoGroups = {};
+            availableVideos.forEach(videoName => {
+                if (!videoExtensions.some(ext => videoName.toLowerCase().endsWith(ext))) {
+                    return;
+                }
+                const baseName = videoName.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, '');
+                const qualityMatch = videoName.match(/_(360p|720p|1080p)$/);
+                const quality = qualityMatch ? qualityMatch[1] : '720p';
+                if (!videoGroups[baseName]) {
+                    videoGroups[baseName] = { qualities: [], names: [] };
+                }
+                videoGroups[baseName].qualities.push(quality);
+                videoGroups[baseName].names.push(videoName);
+            });
+
+            for (const [baseName, group] of Object.entries(videoGroups)) {
+                const preferredQuality = group.qualities.includes('720p') ? '720p' : group.qualities[0];
+                const videoName = group.names.find(name => name.includes(`_${preferredQuality}`)) || group.names[0];
+                const videoPath = `./video/${videoName}`;
+
+                const exists = videoCollection.some(v => v.url === videoPath);
+                if (exists) {
+                    continue;
+                }
+
+                try {
+                    const response = await fetch(videoPath, { method: 'HEAD' });
+                    if (response.ok) {
+                        await addVideoToCollection({
+                            url: videoPath,
+                            name: videoName,
+                            availableQualities: group.qualities
+                        }, false);
+                        foundCount++;
+                        if (!isAutoScan) {
+                            progressBar.style.width = `${((foundCount / Object.keys(videoGroups).length) * 100)}%`;
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`Failed to access ${videoName}:`, error);
+                    continue;
+                }
+            }
+
+            if (foundCount > 0 && !isAutoScan) {
+                showNotification(`Found and added ${foundCount} new video(s)!`);
+            } else if (!isAutoScan && foundCount === 0) {
+                showNotification('No new videos found in the video folder.', false);
+            } else if (foundCount > 0 && isAutoScan) {
+                showNotification(`Auto-detected ${foundCount} new video(s)!`);
+            }
+
+            if (!isAutoScan) {
+                scanBtn.textContent = originalText;
+                scanBtn.disabled = false;
+                loadingOverlay.classList.remove('active');
+            }
+        }
+
+        function startAutoScan() {
+            setInterval(async () => {
+                const currentVideos = await getAvailableVideos();
+                if (currentVideos.length !== lastVideoList.length || 
+                    currentVideos.some((v, i) => v !== lastVideoList[i])) {
+                    await scanForVideos(true);
+                    lastVideoList = [...currentVideos];
+                }
+            }, 10000);
+        }
+
+        function changeQuality(select, videoId) {
+            const videoObj = videoCollection.find(v => v.id === videoId);
+            if (!videoObj) return;
+
+            const newQuality = select.value;
+            const videoElement = document.querySelector(`.video-card[data-video-id="${videoId}"] video`);
+            const currentTime = videoElement.currentTime;
+            const isPlaying = !videoElement.paused;
+
+            let newUrl;
+            if (videoObj.url.startsWith('blob:')) {
+                newUrl = videoObj.url;
+            } else {
+                newUrl = `./video/${videoObj.baseName}_${newQuality}${videoObj.fileName.match(/\.[^/.]+$/)[0]}`;
+            }
+
+            videoObj.currentQuality = newQuality;
+            videoObj.url = newUrl;
+            videoElement.querySelector('source').src = newUrl;
+            videoElement.load();
+            videoElement.currentTime = currentTime;
+            if (isPlaying) {
+                videoElement.play().catch(() => updateVideoStatus(videoElement, 'error'));
+            }
+
+            saveVideos();
+            applyFiltersAndSort();
+        }
+
+        function applyFiltersAndSort() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            filteredCollection = videoCollection.filter(video => 
+                video.title.toLowerCase().includes(searchTerm)
+            );
+
+            if (sortOrder.field) {
+                filteredCollection.sort((a, b) => {
+                    const multiplier = sortOrder.ascending ? 1 : -1;
+                    if (sortOrder.field === 'name') {
+                        return multiplier * a.title.localeCompare(b.title);
+                    } else if (sortOrder.field === 'size') {
+                        const sizeA = a.size || 0;
+                        const sizeB = b.size || 0;
+                        return multiplier * (sizeA - sizeB);
+                    }
+                    return 0;
+                });
+            }
+
+            currentPage = 1;
+            renderVideos();
+        }
+
+        function sortVideos(field) {
+            if (sortOrder.field === field) {
+                sortOrder.ascending = !sortOrder.ascending;
+            } else {
+                sortOrder.field = field;
+                sortOrder.ascending = true;
+            }
+            applyFiltersAndSort();
+        }
+
+        function updateVideoStatus(video, status) {
+            const card = video.closest('.video-card');
+            if (!card) return;
+            const statusBadge = card.querySelector('.status-badge');
+            statusBadge.className = 'status-badge';
+            switch(status) {
+                case 'ready':
+                    statusBadge.classList.add('status-ready');
+                    statusBadge.textContent = 'Ready';
+                    break;
+                case 'error':
+                    statusBadge.classList.add('status-error');
+                    statusBadge.textContent = 'Error';
+                    break;
+                default:
+                    statusBadge.classList.add('status-loading');
+                    statusBadge.textContent = 'Loading...';
+            }
+        }
+
+        function togglePlay(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            const playIcon = button.querySelector('.play-icon');
+            if (video.paused) {
+                document.querySelectorAll('video').forEach(v => {
+                    if (v !== video && !v.paused) {
+                        v.pause();
+                        v.closest('.video-controls').querySelector('.play-icon').textContent = '▶';
+                    }
+                });
+                video.play().catch(() => updateVideoStatus(video, 'error'));
+                playIcon.textContent = '⏸';
+            } else {
+                video.pause();
+                playIcon.textContent = '▶';
+            }
+        }
+
+        function seekVideo(event, progressBar) {
+            const video = progressBar.closest('.video-wrapper').querySelector('video');
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const width = rect.width;
+            const percentage = clickX / width;
+            video.currentTime = percentage * video.duration;
+        }
+
+        function changeVolume(slider) {
+            const video = slider.closest('.video-wrapper').querySelector('video');
+            video.volume = slider.value / 100;
+        }
+
+        function toggleMute(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            const volumeSlider = button.nextElementSibling;
+            if (video.muted) {
+                video.muted = false;
+                button.textContent = '🔊';
+                volumeSlider.value = video.volume * 100;
+            } else {
+                video.muted = true;
+                button.textContent = '🔇';
+                volumeSlider.value = 0;
+            }
+        }
+
+        function toggleFullscreen(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                video.requestFullscreen();
+            }
+        }
+
+        function updateProgress(video) {
+            const controls = video.closest('.video-wrapper').querySelector('.video-controls');
+            const progressFill = controls.querySelector('.progress-fill');
+            const timeDisplay = controls.querySelector('.time-display');
+            if (video.duration) {
+                const percentage = (video.currentTime / video.duration) * 100;
+                progressFill.style.width = percentage + '%';
+                const currentTime = formatTime(video.currentTime);
+                const duration = formatTime(video.duration);
+                timeDisplay.textContent = `${currentTime} / ${duration}`;
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = Math.max(1, Math.min(page, Math.ceil(filteredCollection.length / videosPerPage)));
+            renderVideos();
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredCollection.length / videosPerPage);
+            
+            if (filteredCollection.length < 20) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+            pagination.innerHTML = '';
+
+            const prevButton = document.createElement('button');
+            prevButton.textContent = 'Previous';
+            prevButton.disabled = currentPage === 1;
+            prevButton.onclick = () => goToPage(currentPage - 1);
+            pagination.appendChild(prevButton);
+
+            const maxPagesToShow = 5;
+            const startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+            const endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+
+            if (startPage > 1) {
+                const firstPage = document.createElement('button');
+                firstPage.textContent = '1';
+                firstPage.onclick = () => goToPage(1);
+                pagination.appendChild(firstPage);
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.padding = '10px';
+                    pagination.appendChild(ellipsis);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = i === currentPage ? 'active' : '';
+                pageButton.onclick = () => goToPage(i);
+                pagination.appendChild(pageButton);
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.textContent = '...';
+                    ellipsis.style.padding = '10px';
+                    pagination.appendChild(ellipsis);
+                }
+                const lastPage = document.createElement('button');
+                lastPage.textContent = totalPages;
+                lastPage.onclick = () => goToPage(totalPages);
+                pagination.appendChild(lastPage);
+            }
+
+            const nextButton = document.createElement('button');
+            nextButton.textContent = 'Next';
+            nextButton.disabled = currentPage === totalPages;
+            nextButton.onclick = () => goToPage(currentPage + 1);
+            pagination.appendChild(nextButton);
+        }
+
+        function renderVideos() {
+            const videoGrid = document.getElementById('videoGrid');
+            const noVideos = document.getElementById('noVideos');
+            const videoCount = document.getElementById('videoCount');
+
+            if (filteredCollection.length === 0) {
+                videoGrid.style.display = 'none';
+                noVideos.style.display = 'block';
+                videoCount.style.display = 'none';
+                document.getElementById('pagination').style.display = 'none';
+                return;
+            }
+
+            noVideos.style.display = 'none';
+            videoGrid.style.display = 'grid';
+            videoCount.style.display = 'inline-block';
+            videoCount.textContent = `${filteredCollection.length} video${filteredCollection.length !== 1 ? 's' : ''} loaded`;
+
+            const startIndex = (currentPage - 1) * videosPerPage;
+            const endIndex = startIndex + videosPerPage;
+            const videosToShow = filteredCollection.slice(startIndex, endIndex);
+
+            videoGrid.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            videosToShow.forEach((video, index) => {
+                const card = document.createElement('div');
+                card.innerHTML = createVideoCard(video).replace(
+                    'class="video-card"',
+                    `class="video-card" style="animation-delay: ${index * 0.1}s"`
+                );
+                fragment.appendChild(card.firstElementChild);
+            });
+            videoGrid.appendChild(fragment);
+
+            renderPagination();
+        }
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.play-btn')) {
+                togglePlay(e.target.closest('.play-btn'));
+                e.stopPropagation();
+            } else if (e.target.closest('.progress-bar')) {
+                seekVideo(e, e.target.closest('.progress-bar'));
+                e.stopPropagation();
+            } else if (e.target.closest('.volume-btn')) {
+                toggleMute(e.target.closest('.volume-btn'));
+                e.stopPropagation();
+            } else if (e.target.closest('.fullscreen-btn')) {
+                toggleFullscreen(e.target.closest('.fullscreen-btn'));
+                e.stopPropagation();
+            } else if (e.target.closest('.remove-btn')) {
+                const videoId = parseInt(e.target.closest('.video-card').dataset.videoId);
+                removeVideo(videoId);
+                e.stopPropagation();
+            } else if (e.target.closest('.quality-select')) {
+                e.stopPropagation();
+            }
+        });
+
+        document.addEventListener('change', function(e) {
+            if (e.target.closest('.volume-slider')) {
+                changeVolume(e.target.closest('.volume-slider'));
+                e.stopPropagation();
+            }
+        });
+
+        document.getElementById('videoInput').addEventListener('change', async function(e) {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                if (file.type.startsWith('video/')) {
+                    await addVideoToCollection(file, true);
+                }
+            }
+            e.target.value = '';
+        });
+
+        const uploadSection = document.getElementById('uploadSection');
+        uploadSection.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        uploadSection.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+        });
+        uploadSection.addEventListener('drop', async function(e) {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files);
+            for (const file of files) {
+                if (file.type.startsWith('video/')) {
+                    await addVideoToCollection(file, true);
+                }
+            }
+        });
+
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                applyFiltersAndSort();
+            }, 300);
+        });
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadSavedVideos();
+            lastVideoList = await getAvailableVideos();
+            applyFiltersAndSort();
+            if (videoCollection.length === 0) {
+                await scanForVideos();
+            }
+            startAutoScan();
+
+            const observer = new MutationObserver(() => {
+                document.querySelectorAll('video').forEach(video => {
+                    video.addEventListener('timeupdate', () => {
+                        requestAnimationFrame(() => updateProgress(video));
+                    });
+                    video.addEventListener('ended', () => {
+                        const playIcon = video.closest('.video-controls').querySelector('.play-icon');
+                        playIcon.textContent = '▶';
+                    });
+                    video.addEventListener('loadstart', () => {
+                        updateVideoStatus(video, 'loading');
+                    });
+                    video.addEventListener('loadedmetadata', () => {
+                        updateVideoStatus(video, 'ready');
+                    });
+                    video.addEventListener('error', () => {
+                        updateVideoStatus(video, 'error');
+                    });
+                });
+            });
+            observer.observe(document.getElementById('videoGrid'), { childList: true });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            const focusedVideo = document.querySelector('video:focus');
+            if (focusedVideo) {
+                switch(e.code) {
+                    case 'Space':
+                        e.preventDefault();
+                        const playBtn = focusedVideo.closest('.video-controls').querySelector('.play-btn');
+                        togglePlay(playBtn);
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        focusedVideo.currentTime -= 10;
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        focusedVideo.currentTime += 10;
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(145deg, #1a1b26 0%, #2e1065 100%);
+            min-height: 100vh;
+            padding: 30px;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .video-player-section {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .main-video {
+            flex: 3;
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 aspect ratio */
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .video-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .video-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: opacity 0.3s ease;
+            flex-wrap: wrap;
+        }
+
+        .video-wrapper:hover .video-controls {
+            opacity: 1;
+        }
+
+        .play-btn {
+            background: #6366f1;
+            color: white;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+            border: none;
+        }
+
+        .play-btn:hover {
+            background: #4f46e5;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #6366f1;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .time-display {
+            color: white;
+            font-size: 0.95rem;
+            min-width: 100px;
+            text-align: right;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .volume-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .volume-slider {
+            width: 80px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .quality-select {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f0f6fc;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            outline: none;
+            transition: background 0.3s ease;
+        }
+
+        .quality-select:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 5px;
+            font-size: 18px;
+        }
+
+        .video-info {
+            margin-top: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .video-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 10px;
+        }
+
+        .video-description {
+            color: #d1d5db;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .video-meta {
+            color: #a5b4fc;
+            font-size: 0.9rem;
+        }
+
+        .suggestions {
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .suggestions h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 20px;
+        }
+
+        .suggestion-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .bottom-suggestions {
+            margin-top: 40px;
+        }
+
+        .bottom-suggestions h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 20px;
+        }
+
+        .suggestion-card {
+            display: flex;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .suggestion-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .suggestion-thumbnail {
+            width: 120px;
+            height: 68px;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .suggestion-thumbnail video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .suggestion-info {
+            flex: 1;
+        }
+
+        .suggestion-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #f0f6fc;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .suggestion-meta {
+            color: #d1d5db;
+            font-size: 0.85rem;
+        }
+
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(90deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.6);
+        }
+
+        .error-message {
+            text-align: center;
+            color: #ef4444;
+            font-size: 1.3rem;
+            margin: 60px 0;
+            padding: 50px;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 1024px) {
+            .video-player-section {
+                flex-direction: column;
+            }
+
+            .suggestions {
+                max-width: 100%;
+            }
+
+            .suggestion-grid {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 20px;
+                justify-content: center;
+            }
+
+            .suggestion-card {
+                flex: 1;
+                min-width: 280px;
+                max-width: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .video-title {
+                font-size: 1.5rem;
+            }
+
+            .video-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .progress-bar {
+                min-width: 100%;
+            }
+
+            .volume-control {
+                display: none;
+            }
+
+            .suggestion-card {
+                min-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 15px;
+            }
+
+            .video-title {
+                font-size: 1.2rem;
+            }
+
+            .suggestion-thumbnail {
+                width: 100px;
+                height: 56px;
+            }
+
+            .suggestion-title {
+                font-size: 0.9rem;
+            }
+
+            .suggestion-meta {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">← Back to Gallery</a>
+        <div id="videoPlayerSection" class="video-player-section"></div>
+        <div id="bottomSuggestions" class="bottom-suggestions"></div>
+        <div id="errorMessage" class="error-message" style="display: none;">
+            Video not found. Please return to the gallery and try again.
+        </div>
+    </div>
+
+    <script>
+        let videoCollection = [];
+        let videoIdCounter = 1;
+
+        async function getAvailableVideos() {
+            try {
+                const response = await fetch('/api/videos');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching videos:', error);
+                return [];
+            }
+        }
+
+        async function loadVideosFromServer() {
+            const videoExtensions = ['.mp4', '.webm', '.ogg'];
+            const availableVideos = await getAvailableVideos();
+            const videoGroups = {};
+
+            availableVideos.forEach(videoName => {
+                if (!videoExtensions.some(ext => videoName.toLowerCase().endsWith(ext))) {
+                    return;
+                }
+                const baseName = videoName.replace(/\.[^/.]+$/, '').replace(/_(360p|720p|1080p)$/, '');
+                const qualityMatch = videoName.match(/_(360p|720p|1080p)$/);
+                const quality = qualityMatch ? qualityMatch[1] : '720p';
+                if (!videoGroups[baseName]) {
+                    videoGroups[baseName] = { qualities: [], names: [] };
+                }
+                videoGroups[baseName].qualities.push(quality);
+                videoGroups[baseName].names.push(videoName);
+            });
+
+            for (const [baseName, group] of Object.entries(videoGroups)) {
+                const preferredQuality = group.qualities.includes('720p') ? '720p' : group.qualities[0];
+                const videoName = group.names.find(name => name.includes(`_${preferredQuality}`)) || group.names[0];
+                const videoPath = `./video/${videoName}`;
+                const exists = videoCollection.some(v => v.url === videoPath);
+                if (exists) continue;
+
+                try {
+                    const response = await fetch(videoPath, { method: 'HEAD' });
+                    if (response.ok) {
+                        const video = {
+                            id: videoIdCounter++,
+                            title: baseName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                            description: `Auto-detected video: ${videoName}`,
+                            fileName: videoName,
+                            url: videoPath,
+                            size: null,
+                            dateAdded: new Date().toISOString(),
+                            baseName,
+                            qualities: group.qualities,
+                            currentQuality: preferredQuality
+                        };
+                        videoCollection.push(video);
+                    }
+                } catch (error) {
+                    console.warn(`Failed to access ${videoName}:`, error);
+                }
+            }
+
+            localStorage.setItem('videoGalleryCollection', JSON.stringify({
+                videos: videoCollection,
+                counter: videoIdCounter
+            }));
+        }
+
+        function loadSavedVideos() {
+            const saved = localStorage.getItem('videoGalleryCollection');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    videoCollection = parsed.videos || [];
+                    videoIdCounter = parsed.counter || 1;
+                    console.log('Loaded videos from localStorage:', videoCollection);
+                } catch (e) {
+                    console.error('Error loading saved videos:', e);
+                }
+            }
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0 || bytes == null) return 'Unknown';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function getRandomSuggestions(currentVideoId, count = 5) {
+            const availableVideos = videoCollection.filter(v => v.id !== currentVideoId);
+            const shuffled = availableVideos.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, Math.min(count, availableVideos.length));
+        }
+
+        function createSuggestionCard(video) {
+            return `
+                <div class="suggestion-card" onclick="window.location.href='video-player.html?id=${video.id}'">
+                    <div class="suggestion-thumbnail">
+                        <video preload="metadata">
+                            <source src="${video.url}" type="video/mp4">
+                        </video>
+                    </div>
+                    <div class="suggestion-info">
+                        <h4 class="suggestion-title">${video.title}</h4>
+                        <p class="suggestion-meta">${video.fileName} (${formatFileSize(video.size)})</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function togglePlay(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            const playIcon = button.querySelector('.play-icon');
+            if (video.paused) {
+                video.play().catch(() => console.error('Error playing video'));
+                playIcon.textContent = '⏸';
+            } else {
+                video.pause();
+                playIcon.textContent = '▶';
+            }
+        }
+
+        function seekVideo(event, progressBar) {
+            const video = progressBar.closest('.video-wrapper').querySelector('video');
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const width = rect.width;
+            const percentage = clickX / width;
+            video.currentTime = percentage * video.duration;
+        }
+
+        function changeVolume(slider) {
+            const video = slider.closest('.video-wrapper').querySelector('video');
+            video.volume = slider.value / 100;
+        }
+
+        function toggleMute(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            const volumeSlider = button.nextElementSibling;
+            if (video.muted) {
+                video.muted = false;
+                button.textContent = '🔊';
+                volumeSlider.value = video.volume * 100;
+            } else {
+                video.muted = true;
+                button.textContent = '🔇';
+                volumeSlider.value = 0;
+            }
+        }
+
+        function toggleFullscreen(button) {
+            const video = button.closest('.video-wrapper').querySelector('video');
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                video.requestFullscreen();
+            }
+        }
+
+        function changeQuality(select, videoId) {
+            const videoObj = videoCollection.find(v => v.id === videoId);
+            if (!videoObj) return;
+
+            const newQuality = select.value;
+            const videoElement = document.querySelector('.video-wrapper video');
+            const currentTime = videoElement.currentTime;
+            const isPlaying = !videoElement.paused;
+
+            let newUrl = videoObj.url.startsWith('blob:') 
+                ? videoObj.url 
+                : `./video/${videoObj.baseName}_${newQuality}${videoObj.fileName.match(/\.[^/.]+$/)[0]}`;
+
+            videoObj.currentQuality = newQuality;
+            videoElement.querySelector('source').src = newUrl;
+            videoElement.load();
+            videoElement.currentTime = currentTime;
+            if (isPlaying) {
+                videoElement.play().catch(() => console.error('Error playing video'));
+            }
+        }
+
+        function updateProgress(video) {
+            const controls = video.closest('.video-wrapper').querySelector('.video-controls');
+            const progressFill = controls.querySelector('.progress-fill');
+            const timeDisplay = controls.querySelector('.time-display');
+            if (video.duration) {
+                const percentage = (video.currentTime / video.duration) * 100;
+                progressFill.style.width = percentage + '%';
+                const currentTime = formatTime(video.currentTime);
+                const duration = formatTime(video.duration);
+                timeDisplay.textContent = `${currentTime} / ${duration}`;
+            }
+        }
+
+        function renderVideoPlayer(video) {
+            const qualityOptions = video.qualities.map(quality => 
+                `<option value="${quality}" ${video.currentQuality === quality ? 'selected' : ''}>${quality}</option>`
+            ).join('');
+            return `
+                <div class="main-video">
+                    <div class="video-wrapper">
+                        <video preload="metadata" autoplay>
+                            <source src="${video.url}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                        <div class="video-controls">
+                            <button class="play-btn" onclick="togglePlay(this)">
+                                <span class="play-icon">⏸</span>
+                            </button>
+                            <div class="progress-bar" onclick="seekVideo(event, this)">
+                                <div class="progress-fill"></div>
+                            </div>
+                            <div class="time-display">0:00 / 0:00</div>
+                            <select class="quality-select" onchange="changeQuality(this, ${video.id})">
+                                ${qualityOptions}
+                            </select>
+                            <div class="volume-control">
+                                <button class="volume-btn" onclick="toggleMute(this)">🔊</button>
+                                <input type="range" class="volume-slider" min="0" max="100" value="100" onchange="changeVolume(this)">
+                            </div>
+                            <button class="fullscreen-btn" onclick="toggleFullscreen(this)">⛶</button>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <h2 class="video-title">${video.title}</h2>
+                        <p class="video-description">${video.description}</p>
+                        <p class="video-meta">${video.fileName} (${formatFileSize(video.size)})</p>
+                    </div>
+                </div>
+                <div class="suggestions">
+                    <h3>Suggested Videos</h3>
+                    <div class="suggestion-grid">
+                        ${getRandomSuggestions(video.id, 5).map(createSuggestionCard).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBottomSuggestions(videoId) {
+            const suggestions = getRandomSuggestions(videoId, 5);
+            const bottomSuggestions = document.getElementById('bottomSuggestions');
+            bottomSuggestions.innerHTML = `
+                <h3>More Videos</h3>
+                <div class="suggestion-grid">
+                    ${suggestions.map(createSuggestionCard).join('')}
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            loadSavedVideos();
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoId = parseInt(urlParams.get('id'));
+            console.log('Video ID from URL:', videoId);
+
+            // If videoCollection is empty, try to load from server
+            if (videoCollection.length === 0) {
+                console.log('videoCollection is empty, attempting to load from server...');
+                await loadVideosFromServer();
+            }
+
+            const video = videoCollection.find(v => v.id === videoId);
+            console.log('Found video:', video);
+
+            const videoPlayerSection = document.getElementById('videoPlayerSection');
+            const errorMessage = document.getElementById('errorMessage');
+
+            if (!video) {
+                videoPlayerSection.style.display = 'none';
+                errorMessage.style.display = 'block';
+                return;
+            }
+
+            videoPlayerSection.innerHTML = renderVideoPlayer(video);
+            renderBottomSuggestions(videoId);
+
+            const mainVideo = document.querySelector('.main-video video');
+            mainVideo.addEventListener('timeupdate', () => {
+                requestAnimationFrame(() => updateProgress(mainVideo));
+            });
+            mainVideo.addEventListener('ended', () => {
+                const playIcon = mainVideo.closest('.video-controls').querySelector('.play-icon');
+                playIcon.textContent = '▶';
+            });
+        });
+    </script>
+</body>
+</html>
