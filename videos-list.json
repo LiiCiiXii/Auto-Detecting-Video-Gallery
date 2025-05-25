@@ -1,0 +1,14 @@
+{
+  "videos": [
+    {
+      "filename": "sample-video.mp4",
+      "title": "Sample Video",
+      "description": "A sample video for demonstration"
+    },
+    {
+      "filename": "demo.webm",
+      "title": "Demo Video",
+      "description": "Demo video showcasing features"
+    }
+  ]
+}

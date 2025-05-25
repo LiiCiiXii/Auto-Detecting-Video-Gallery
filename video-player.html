@@ -709,6 +709,113 @@
                 transform: translateY(0);
             }
         }
+
+        .autoplay-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: white;
+            z-index: 1000;
+            border-radius: var(--border-radius);
+        }
+
+        .autoplay-overlay.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .autoplay-content {
+            text-align: center;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .autoplay-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .autoplay-next-video {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border: 1px solid var(--card-border);
+        }
+
+        .autoplay-next-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .autoplay-next-meta {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .autoplay-countdown {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #667eea;
+            margin: 1rem 0;
+            text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .autoplay-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .autoplay-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .autoplay-play-now {
+            background: var(--primary-gradient);
+            color: white;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .autoplay-play-now:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .autoplay-cancel {
+            background: var(--danger-gradient);
+            color: white;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .autoplay-cancel:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -738,6 +845,10 @@
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                 </select>
+            </label>
+            <label>
+                Auto-play Next: 
+                <input type="checkbox" id="autoplayNext" checked>
             </label>
         </div>
         
@@ -1099,6 +1210,111 @@
             localStorage.setItem('themePref', theme);
         }
 
+        let autoplayTimer = null;
+        let autoplayCountdown = null;
+        let nextVideoToPlay = null;
+
+        function getNextVideo(currentVideoId) {
+            const currentIndex = videoCollection.findIndex(v => v.id === currentVideoId);
+            if (currentIndex === -1 || currentIndex === videoCollection.length - 1) {
+                return null; // No next video or current video not found
+            }
+            return videoCollection[currentIndex + 1];
+        }
+
+        function getPreviousVideo(currentVideoId) {
+            const currentIndex = videoCollection.findIndex(v => v.id === currentVideoId);
+            if (currentIndex === -1 || currentIndex === 0) {
+                return null; // No previous video or current video not found
+            }
+            return videoCollection[currentIndex - 1];
+        }
+
+        function startAutoplayCountdown(nextVideo) {
+            const autoplayEnabled = document.getElementById('autoplayNext')?.checked;
+            if (!autoplayEnabled || !nextVideo) return;
+
+            nextVideoToPlay = nextVideo;
+            const overlay = document.getElementById('autoplayOverlay');
+            const countdownElement = document.getElementById('autoplayCountdown');
+            const nextTitle = document.getElementById('autoplayNextTitle');
+            const nextMeta = document.getElementById('autoplayNextMeta');
+
+            // Update next video info
+            nextTitle.textContent = nextVideo.title;
+            nextMeta.textContent = `${nextVideo.fileName} (${formatFileSize(nextVideo.size)})`;
+
+            // Show overlay
+            overlay.classList.add('active');
+
+            let countdown = 5;
+            countdownElement.textContent = countdown;
+
+            autoplayCountdown = setInterval(() => {
+                countdown--;
+                countdownElement.textContent = countdown;
+
+                if (countdown <= 0) {
+                    clearInterval(autoplayCountdown);
+                    playNextVideoNow();
+                }
+            }, 1000);
+
+            // Auto-hide after 6 seconds if not interacted with
+            autoplayTimer = setTimeout(() => {
+                if (autoplayCountdown) {
+                    clearInterval(autoplayCountdown);
+                    playNextVideoNow();
+                }
+            }, 6000);
+        }
+
+        function playNextVideoNow() {
+            if (nextVideoToPlay) {
+                cancelAutoplay();
+                navigateToVideo(nextVideoToPlay.id);
+            }
+        }
+
+        function cancelAutoplay() {
+            const overlay = document.getElementById('autoplayOverlay');
+            overlay.classList.remove('active');
+            
+            if (autoplayTimer) {
+                clearTimeout(autoplayTimer);
+                autoplayTimer = null;
+            }
+            
+            if (autoplayCountdown) {
+                clearInterval(autoplayCountdown);
+                autoplayCountdown = null;
+            }
+            
+            nextVideoToPlay = null;
+        }
+
+        function playPreviousVideo() {
+            const currentVideoId = currentVideo?.id;
+            const previousVideo = getPreviousVideo(currentVideoId);
+            
+            if (previousVideo) {
+                navigateToVideo(previousVideo.id);
+            } else {
+                showNotification('This is the first video in the collection.', false);
+            }
+        }
+
+        function playNextVideo() {
+            const currentVideoId = currentVideo?.id;
+            const nextVideo = getNextVideo(currentVideoId);
+            
+            if (nextVideo) {
+                navigateToVideo(nextVideo.id);
+            } else {
+                showNotification('This is the last video in the collection.', false);
+            }
+        }
+
         function renderVideoPlayer(video) {
             const qualityOptions = video.qualities.map(quality => 
                 `<option value="${quality}" ${video.currentQuality === quality ? 'selected' : ''}>${quality}</option>`
@@ -1111,7 +1327,26 @@
                             <source src="${video.url}" type="video/mp4">
                             Your browser does not support the video tag.
                         </video>
+                        
+                        <!-- Add autoplay overlay -->
+                        <div class="autoplay-overlay" id="autoplayOverlay">
+                            <div class="autoplay-content">
+                                <div class="autoplay-title">Up Next</div>
+                                <div class="autoplay-next-video" id="autoplayNextVideo">
+                                    <div class="autoplay-next-title" id="autoplayNextTitle">Loading...</div>
+                                    <div class="autoplay-next-meta" id="autoplayNextMeta">Loading...</div>
+                                </div>
+                                <div class="autoplay-countdown" id="autoplayCountdown">5</div>
+                                <div class="autoplay-controls">
+                                    <button class="autoplay-btn autoplay-play-now" onclick="playNextVideoNow()">Play Now</button>
+                                    <button class="autoplay-btn autoplay-cancel" onclick="cancelAutoplay()">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- existing video controls -->
                         <div class="video-controls">
+                            <button class="skip-btn" onclick="playPreviousVideo()" title="Previous Video">⏮</button>
                             <button class="play-btn" onclick="togglePlay(this)">
                                 <span class="play-icon">▶</span>
                             </button>
@@ -1122,6 +1357,7 @@
                             </div>
                             <button class="skip-btn" onclick="skipVideo(5)">+5s</button>
                             <button class="skip-btn" onclick="skipVideo(10)">+10s</button>
+                            <button class="skip-btn" onclick="playNextVideo()" title="Next Video">⏭</button>
                             <div class="time-display">0:00 / 0:00</div>
                             <select class="quality-select" onchange="changeQuality(this, ${video.id})">
                                 ${qualityOptions}
@@ -1188,12 +1424,22 @@
                     if (playBtn) togglePlay(playBtn);
                     break;
                 case 'ArrowLeft':
-                    e.preventDefault();
-                    skipVideo(-10);
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        playPreviousVideo();
+                    } else {
+                        e.preventDefault();
+                        skipVideo(-10);
+                    }
                     break;
                 case 'ArrowRight':
-                    e.preventDefault();
-                    skipVideo(10);
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        playNextVideo();
+                    } else {
+                        e.preventDefault();
+                        skipVideo(10);
+                    }
                     break;
                 case 'ArrowUp':
                     e.preventDefault();
@@ -1249,6 +1495,18 @@
                 const themePref = document.getElementById('themePref');
                 if (themePref) themePref.value = savedTheme;
 
+                // Apply saved autoplay preference
+                const savedAutoplayNext = localStorage.getItem('autoplayNext');
+                if (savedAutoplayNext !== null) {
+                    const autoplayNext = document.getElementById('autoplayNext');
+                    if (autoplayNext) autoplayNext.checked = savedAutoplayNext === 'true';
+                }
+
+                // Save autoplay preference when changed
+                document.getElementById('autoplayNext')?.addEventListener('change', function(e) {
+                    localStorage.setItem('autoplayNext', e.target.checked);
+                });
+
                 if (!video) {
                     document.getElementById('videoPlayerSection').style.display = 'none';
                     document.getElementById('bottomSuggestions').style.display = 'none';
@@ -1281,6 +1539,12 @@
                     const playIcon = videoElement.closest('.video-controls').querySelector('.play-icon');
                     if (playIcon) playIcon.textContent = '▶';
                     updateStats(videoElement);
+                    
+                    // Start autoplay countdown
+                    const nextVideo = getNextVideo(currentVideo.id);
+                    if (nextVideo) {
+                        startAutoplayCountdown(nextVideo);
+                    }
                 }, { passive: true });
 
                 videoElement.addEventListener('error', () => {
